@@ -1,10 +1,10 @@
-
 local M = {}
 
 local config = {
   wait_ms = 1000,
   disable = false,
   disabled_filetypes = { 'neo-tree' },
+  disabled_filetypes_no_cursorline = {},
   disable_in_diff = true,
 }
 
@@ -26,6 +26,15 @@ local function is_disabled_filetype()
   return false
 end
 
+local function is_disabled_filetype_no_cursorline()
+  for _, ft in ipairs(config.disabled_filetypes_no_cursorline) do
+    if vim.bo.filetype == ft then
+      return true
+    end
+  end
+  return false
+end
+
 local function timer_stop()
   if timer_id ~= 0 then
     vim.fn.timer_stop(timer_id)
@@ -34,7 +43,7 @@ local function timer_stop()
 end
 
 local function enable()
-  if not is_disabled_filetype() and not (config.disable_in_diff and vim.wo.diff) then
+  if not is_disabled_filetype_no_cursorline() and not (config.disable_in_diff and vim.wo.diff) then
     vim.wo.cursorline = true
     current_status = status.CURSOR
   end
@@ -46,8 +55,12 @@ local function timer_start()
 end
 
 function M.cursor_moved()
-  if config.disable or is_disabled_filetype() then
+  if config.disable or is_disabled_filetype_no_cursorline() then
     vim.wo.cursorline = false
+    current_status = status.DISABLED
+    return
+  end
+  if is_disabled_filetype() then
     current_status = status.DISABLED
     return
   end
@@ -64,8 +77,11 @@ function M.cursor_moved()
 end
 
 function M.win_enter()
-  if is_disabled_filetype() or (config.disable_in_diff and vim.wo.diff) then
+  if is_disabled_filetype_no_cursorline() or (config.disable_in_diff and vim.wo.diff) then
     vim.wo.cursorline = false
+    current_status = status.DISABLED
+    timer_stop()
+  elseif is_disabled_filetype() then
     current_status = status.DISABLED
     timer_stop()
   else
@@ -78,7 +94,7 @@ end
 function M.win_leave()
   vim.wo.cursorline = false
   timer_stop()
-  if not is_disabled_filetype() then
+  if not is_disabled_filetype_no_cursorline() and not is_disabled_filetype() then
     current_status = status.DISABLED
   end
 end
