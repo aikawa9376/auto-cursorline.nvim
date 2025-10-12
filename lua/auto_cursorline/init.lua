@@ -46,22 +46,29 @@ local function timer_start()
 end
 
 function M.cursor_moved()
-  if not config.disable and not is_disabled_filetype() then
-    if current_status == status.WINDOW then
-      current_status = status.CURSOR
-      return
-    end
-    timer_stop()
-    timer_start()
-    if current_status == status.CURSOR then
-      vim.wo.cursorline = false
-      current_status = status.DISABLED
-    end
+  if config.disable or is_disabled_filetype() then
+    vim.wo.cursorline = false
+    current_status = status.DISABLED
+    return
+  end
+  if current_status == status.WINDOW then
+    current_status = status.CURSOR
+    return
+  end
+  timer_stop()
+  timer_start()
+  if current_status == status.CURSOR then
+    vim.wo.cursorline = false
+    current_status = status.DISABLED
   end
 end
 
 function M.win_enter()
-  if not is_disabled_filetype() and not (config.disable_in_diff and vim.wo.diff) then
+  if is_disabled_filetype() or (config.disable_in_diff and vim.wo.diff) then
+    vim.wo.cursorline = false
+    current_status = status.DISABLED
+    timer_stop()
+  else
     vim.wo.cursorline = true
     current_status = status.WINDOW
     timer_stop()
@@ -69,9 +76,10 @@ function M.win_enter()
 end
 
 function M.win_leave()
+  vim.wo.cursorline = false
+  timer_stop()
   if not is_disabled_filetype() then
-    vim.wo.cursorline = false
-    timer_stop()
+    current_status = status.DISABLED
   end
 end
 
