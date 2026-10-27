@@ -42,8 +42,16 @@ local function timer_stop()
   end
 end
 
+local function forced_off()
+  return config.disable or vim.w.auto_cursorline_disabled == true
+    or is_disabled_filetype_no_cursorline() or (config.disable_in_diff and vim.wo.diff)
+end
+
 local function enable()
-  if not is_disabled_filetype_no_cursorline() and not (config.disable_in_diff and vim.wo.diff) then
+  if forced_off() then
+    vim.wo.cursorline = false
+    current_status = status.DISABLED
+  elseif not is_disabled_filetype() then
     vim.wo.cursorline = true
     current_status = status.CURSOR
   end
@@ -55,12 +63,14 @@ local function timer_start()
 end
 
 function M.cursor_moved()
-  if config.disable or is_disabled_filetype_no_cursorline() then
+  if forced_off() then
+    timer_stop()
     vim.wo.cursorline = false
     current_status = status.DISABLED
     return
   end
   if is_disabled_filetype() then
+    timer_stop()
     current_status = status.DISABLED
     return
   end
@@ -77,7 +87,7 @@ function M.cursor_moved()
 end
 
 function M.win_enter()
-  if is_disabled_filetype_no_cursorline() or (config.disable_in_diff and vim.wo.diff) then
+  if forced_off() then
     vim.wo.cursorline = false
     current_status = status.DISABLED
     timer_stop()
