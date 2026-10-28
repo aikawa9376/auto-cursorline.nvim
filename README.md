@@ -44,8 +44,20 @@ require('auto_cursorline').cursor_moved()
 This lets renderers such as Inkstone keep enlarged terminal text stable while
 the cursor is on it, without disabling cursorline for ordinary body rows.
 
+### Window-local row decoration
+
+Set `vim.w.auto_cursorline_extmark = true` to keep the usual delay while drawing
+`CursorLine` and `CursorLineNr` with a window-scoped row mark. The native
+`cursorline` option stays off, avoiding window-wide option redraws over terminal
+text overlays. Call `cursor_moved()` to refresh after changing the flag.
+Inkstone manages and restores this flag automatically for typography windows.
+
+This mode requires Neovim's namespace window scoping API. Older Neovim versions
+and explicit `cursorlineopt=screenline` retain native behavior to preserve their
+wrapped-screen-line semantics. Removing the flag restores normal native delay.
+
 ### Tests
 
 Run `nvim --headless --clean -u NONE -l tests/run.lua` from this repository.
 The tests cover normal delay, suppression, queued callbacks and existing
-filetype/diff/disable behavior.
+filetype/diff/disable behavior, including restoration from row-decoration mode.

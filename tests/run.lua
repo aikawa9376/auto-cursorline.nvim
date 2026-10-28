@@ -6,6 +6,7 @@ local passed = 0
 local function test(name, callback)
   auto.win_leave()
   vim.w.auto_cursorline_disabled = nil
+  vim.w.auto_cursorline_extmark = nil
   vim.bo.filetype, vim.wo.diff = '', false
   auto.setup({ wait_ms = 20, disable = false, disable_in_diff = true,
     disabled_filetypes = { 'neo-tree' }, disabled_filetypes_no_cursorline = {} })
@@ -66,6 +67,27 @@ test('delayed callbacks respect disable and diff settings', function()
   vim.wo.diff = true
   vim.wait(50)
   assert(not vim.wo.cursorline)
+end)
+
+test('row decorations preserve delay without native cursorline toggles', function()
+  vim.w.auto_cursorline_extmark = true
+  auto.cursor_moved()
+  vim.wait(50)
+  assert(not vim.wo.cursorline)
+  auto.win_enter()
+  assert(not vim.wo.cursorline)
+  auto.win_leave()
+  vim.w.auto_cursorline_extmark = nil
+  auto.cursor_moved()
+  assert(vim.wait(200, function() return vim.wo.cursorline end, 5))
+end)
+
+test('pending callbacks recheck row decoration mode', function()
+  auto.cursor_moved()
+  vim.w.auto_cursorline_extmark = true
+  vim.wait(50)
+  assert(not vim.wo.cursorline)
+  vim.w.auto_cursorline_extmark = nil
 end)
 
 vim.w.auto_cursorline_disabled = nil
